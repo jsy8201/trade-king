@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>세계 무역왕</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<style>body{font-family:sans-serif;background:#f1f5f9}</style>
+</head>
+<body class="p-3 max-w-5xl mx-auto text-slate-800">
+
+<header class="bg-indigo-700 text-white p-3 rounded-xl flex justify-between items-center mb-4 shadow">
+  <div>
+    <h1 class="font-black text-lg">🌍 세계 무역왕 <span class="text-xs bg-indigo-500 px-2 py-0.5 rounded">상호의존·경쟁</span></h1>
+    <p class="text-xs text-indigo-200">부품 교환 · 해외공장 · 관세 경쟁</p>
+  </div>
+  <button onclick="document.getElementById('gloss').classList.toggle('hidden')" class="bg-indigo-600 text-xs px-3 py-1.5 rounded-lg font-bold border border-indigo-400">📖 용어사전</button>
+</header>
+
+<!-- 1. 로비 -->
+<div id="vLobby" class="max-w-md mx-auto space-y-4 mt-6">
+  <div class="bg-white p-5 rounded-2xl shadow space-y-3">
+    <h2 class="text-xl font-black text-center">학생 입장</h2>
+    <input id="inCode" maxlength="5" placeholder="방 코드 (예: A1B2C)" class="w-full text-center text-2xl font-black uppercase border-2 rounded-xl p-2.5">
+    <input id="inNick" maxlength="10" placeholder="내 별명 (재입장 시 동일하게 입력)" class="w-full text-center font-bold border-2 rounded-xl p-2.5">
+    <button onclick="joinGame()" class="w-full bg-indigo-600 text-white font-black py-3 rounded-xl text-lg">입장하기</button>
+    <p id="err" class="text-xs text-rose-600 text-center font-bold hidden"></p>
+  </div>
+  <div class="bg-slate-800 text-white p-4 rounded-2xl flex justify-between items-center">
+    <div><p class="text-xs text-amber-400 font-bold">선생님 전용</p><p class="font-bold text-sm">새 수업 방 만들기</p></div>
+    <button onclick="createHost()" class="bg-amber-500 text-slate-900 font-black px-4 py-2.5 rounded-xl text-sm">방 개설</button>
+  </div>
+</div>
+
+<!-- 2. 교사 화면 -->
+<div id="vHost" class="hidden space-y-4">
+  <div class="bg-white p-4 rounded-2xl shadow grid md:grid-cols-3 gap-3 items-center">
+    <div class="bg-indigo-50 p-3 rounded-xl text-center border border-indigo-200">
+      <p class="text-xs font-bold text-indigo-600">방 코드</p>
+      <p id="hCode" class="text-3xl font-black tracking-widest text-indigo-900">-----</p>
+      <p class="text-xs text-slate-500">접속: <b id="hCnt">0</b>명</p>
+    </div>
+    <div class="space-y-2">
+      <p class="text-xs font-bold">상태: <span id="hState" class="text-amber-600">대기중</span></p>
+      <div class="flex gap-1.5 text-xs font-bold">
+        <button onclick="setGameState('PLAY')" class="flex-1 bg-emerald-600 text-white py-2 rounded-lg">▶ 시작</button>
+        <button onclick="setGameState('PAUSE')" class="bg-amber-500 text-white px-3 py-2 rounded-lg">⏸ 정지</button>
+        <button onclick="setGameState('END')" class="bg-rose-600 text-white px-3 py-2 rounded-lg">🏁 종료</button>
+      </div>
+    </div>
+    <div class="bg-slate-50 p-2.5 rounded-xl border text-xs font-bold space-y-1">
+      <p class="text-slate-600">🌐 세계 경제 정책</p>
+      <div class="grid grid-cols-2 gap-1">
+        <button onclick="setPolicy('NORM')" class="bg-white border py-1.5 rounded">⚖️ 기본(관세10%)</button>
+        <button onclick="setPolicy('FTA')" class="bg-white border py-1.5 rounded text-blue-600">🤝 FTA(관세0%)</button>
+        <button onclick="setPolicy('TARIFF')" class="bg-white border py-1.5 rounded text-rose-600">🚧 보호무역(30%)</button>
+        <button onclick="setPolicy('BOOM')" class="bg-white border py-1.5 rounded text-emerald-600">📈 호황(보상+50%)</button>
+      </div>
+    </div>
+  </div>
+  <div class="grid md:grid-cols-3 gap-4">
+    <div class="md:col-span-2 bg-white p-4 rounded-2xl shadow">
+      <h3 class="font-black text-sm mb-2">🏆 실시간 순위</h3>
+      <table class="w-full text-xs text-left"><thead class="bg-slate-100"><tr><th class="p-2">순위</th><th class="p-2">별명</th><th class="p-2">국가</th><th class="p-2">완제품</th><th class="p-2">공장</th><th class="p-2">자금</th><th class="p-2">점수</th></tr></thead><tbody id="hBoard"></tbody></table>
+    </div>
+    <div class="bg-white p-4 rounded-2xl shadow h-80 flex flex-col">
+      <h3 class="font-black text-sm mb-2">📡 무역 중계</h3>
+      <div id="hLogs" class="flex-1 overflow-y-auto text-xs space-y-1 bg-slate-50 p-2 rounded"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 3. 학생 화면 -->
+<div id="vPlay" class="hidden space-y-3">
+  <div id="pBanner" class="bg-indigo-600 text-white px-3 py-2 rounded-xl text-xs font-bold flex justify-between">
+    <span id="pPolTxt">⚖️ 기본 무역 (관세 10%)</span>
+    <span id="pStTxt">대기 중</span>
+  </div>
+  <div class="bg-white p-3 rounded-2xl shadow grid grid-cols-4 gap-2 text-center items-center">
+    <div><p id="pCountry" class="font-black text-sm">🇰🇷 한국</p><p id="pNick" class="text-xs text-slate-500">별명</p></div>
+    <div class="bg-amber-50 p-2 rounded-xl"><p class="text-[10px] text-amber-700 font-bold">자금</p><p class="font-black text-sm"><span id="pMoney">1000</span>G</p></div>
+    <div class="bg-emerald-50 p-2 rounded-xl"><p class="text-[10px] text-emerald-700 font-bold">완제품/공장</p><p class="font-black text-sm"><span id="pProd">0</span> / <span id="pFact">0</span></p></div>
+    <div class="bg-indigo-50 p-2 rounded-xl"><p class="text-[10px] text-indigo-700 font-bold">점수</p><p class="font-black text-sm"><span id="pScore">0</span>점</p></div>
+  </div>
+
+  <div id="pIncoming" class="space-y-2"></div>
+
+  <div class="grid md:grid-cols-3 gap-3">
+    <div class="space-y-3">
+      <div class="bg-white p-3 rounded-2xl shadow">
+        <h3 class="font-black text-xs mb-2">📦 보유 부품</h3>
+        <div id="pInv" class="grid grid-cols-2 gap-1.5 text-xs"></div>
+      </div>
+      <div class="bg-white p-3 rounded-2xl shadow">
+        <h3 class="font-black text-xs mb-1">🏭 해외 공장 건설 (500G)</h3>
+        <p class="text-[10px] text-slate-500 mb-2">25초마다 해당 부품 자동 생산</p>
+        <div id="pFactList" class="grid grid-cols-2 gap-1 text-xs"></div>
+      </div>
+    </div>
+
+    <div class="bg-white p-3 rounded-2xl shadow">
+      <h3 class="font-black text-xs mb-2">🛠️ 글로벌 완제품 생산 미션</h3>
+      <div id="pMissions" class="space-y-2 text-xs"></div>
+    </div>
+
+    <div class="space-y-3">
+      <div class="bg-white p-3 rounded-2xl shadow space-y-2 text-xs">
+        <h3 class="font-black text-xs">🤝 무역 제안하기</h3>
+        <select id="tTarget" class="w-full border p-1.5 rounded font-bold"></select>
+        <div class="grid grid-cols-2 gap-1">
+          <select id="tGive" class="border p-1.5 rounded bg-rose-50 font-bold"></select>
+          <input id="tGiveQ" type="number" value="1" min="1" max="5" class="border p-1.5 rounded text-center font-bold">
+        </div>
+        <div class="grid grid-cols-2 gap-1">
+          <select id="tWant" class="border p-1.5 rounded bg-emerald-50 font-bold"></select>
+          <input id="tWantQ" type="number" value="1" min="1" max="5" class="border p-1.5 rounded text-center font-bold">
+        </div>
+        <button onclick="sendTrade()" class="w-full bg-indigo-600 text-white font-black py-2 rounded-xl">📨 제안 보내기</button>
+      </div>
+      <div class="bg-white p-3 rounded-2xl shadow">
+        <h3 class="font-black text-xs mb-1">🏆 실시간 순위</h3>
+        <div id="pBoard" class="space-y-1 text-xs"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 용어사전 -->
+<div id="gloss" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+  <div class="bg-white p-5 rounded-2xl max-w-sm w-full space-y-2 text-xs">
+    <div class="flex justify-between font-black text-sm"><span>📖 사회 무역 용어</span><button onclick="document.getElementById('gloss').classList.add('hidden')">✕</button></div>
+    <p><b>상호의존:</b> 나라마다 잘 만드는 자원이 달라 서로 교환하며 의지하는 관계</p>
+    <p><b>관세(보호무역):</b> 외국 물건에 세금을 매겨 자국 산업을 보호하며 경쟁</p>
+    <p><b>FTA(자유무역협정):</b> 국가 간 관세를 없애 무역을 활성화하는 약속</p>
+    <p><b>해외직접투자:</b> 외국에 직접 공장을 세워 현지 자원을 확보하는 활동</p>
+  </div>
+</div>
+
+<script>
+const ITEMS = { chip:'반도체', ai:'AI칩', sensor:'정밀센서', motor:'정밀모터', lithium:'리튬', body:'조립패키징' };
+const COUNTRIES = [
+  { name:'🇰🇷 한국', main:'chip' }, { name:'🇺🇸 미국', main:'ai' }, { name:'🇯🇵 일본', main:'sensor' },
+  { name:'🇩🇪 독일', main:'motor' }, { name:'🇦🇺 호주', main:'lithium' }, { name:'🇻🇳 베트남', main:'body' }
+];
+const MISSIONS = [
+  { id:'phone', name:'📱 스마트폰', req:{ chip:1, sensor:1, body:1 }, reward:600, pts:150 },
+  { id:'ev', name:'🚗 자율주행 전기차', req:{ lithium:1, motor:1, ai:1, body:1 }, reward:900, pts:250 },
+  { id:'robot', name:'🤖 휴머노이드 로봇', req:{ chip:1, ai:1, sensor:1, motor:1, lithium:1, body:1 }, reward:1500, pts:450 }
+];
+
+let peer, conn, hostConns = {}, isHost = false, roomCode = '', myNick = '';
+let game = { state:'WAIT', policy:'NORM', players:{}, trades:[], logs:[] };
+
+function show(id){ ['vLobby','vHost','vPlay'].forEach(v=>document.getElementById(v).classList.add('hidden')); document.getElementById(id).classList.remove('hidden'); }
+function calcScore(p){ return p.prod*200 + p.facts.length*150 + Math.floor(p.money/10); }
+
+// --- 호스트(교사) ---
+function createHost(){
+  isHost = true;
+  roomCode = Math.random().toString(36).substring(2,7).toUpperCase();
+  peer = new Peer('WT6-' + roomCode);
+  peer.on('open', () => {
+    document.getElementById('hCode').innerText = roomCode;
+    show('vHost');
+    setInterval(factoryTick, 25000);
+  });
+  peer.on('connection', c => {
+    c.on('data', d => handleHostMsg(c, d));
+  });
+}
+
+function broadcast(){
+  const payload = { type:'SYNC', game };
+  Object.values(hostConns).forEach(c => { if(c.open) c.send(payload); });
+  renderHost();
+}
+
+function addLog(msg){ game.logs.unshift(`[${new Date().toLocaleTimeString().slice(0,5)}] ${msg}`); if(game.logs.length>30) game.logs.pop(); }
+
+function handleHostMsg(c, d){
+  if(d.type === 'JOIN'){
+    hostConns[d.nick] = c;
+    if(!game.players[d.nick]){
+      const cInfo = COUNTRIES[Object.keys(game.players).length % COUNTRIES.length];
+      const inv = { chip:0, ai:0, sensor:0, motor:0, lithium:0, body:0 };
+      inv[cInfo.main] = 5;
+      game.players[d.nick] = { nick:d.nick, country:cInfo.name, main:cInfo.main, money:1000, inv, facts:[], prod:0 };
+      addLog(`${d.nick}(${cInfo.name}) 입장!`);
+    } else {
+      addLog(`${d.nick} 재입장(이어하기)`);
+    }
+    broadcast();
+  }
+  if(game.state !== 'PLAY') return;
+  const p = game.players[d.nick]; if(!p) return;
+
+  if(d.type === 'BUILD'){
+    if(p.money >= 500 && !p.facts.includes(d.item)){
+      p.money -= 500; p.facts.push(d.item);
+      addLog(`🏭 ${p.nick}, 해외 [${ITEMS[d.item]}] 공장 건설!`);
+      broadcast();
+    }
+  }
+  if(d.type === 'CRAFT'){
+    const m = MISSIONS.find(x=>x.id===d.mid);
+    if(m && Object.entries(m.req).every(([k,v])=>p.inv[k]>=v)){
+      Object.entries(m.req).forEach(([k,v])=>p.inv[k]-=v);
+      const mult = game.policy==='BOOM' ? 1.5 : 1;
+      p.money += Math.round(m.reward * mult);
+      p.prod += 1;
+      addLog(`🎉 ${p.nick}, ${m.name} 생산 성공!`);
+      broadcast();
+    }
+  }
+  if(d.type === 'TRADE_REQ'){
+    if(p.inv[d.give] >= d.giveQ){
+      game.trades.push({ id:Date.now()+Math.random(), from:d.nick, to:d.to, give:d.give, giveQ:d.giveQ, want:d.want, wantQ:d.wantQ });
+      broadcast();
+    }
+  }
+  if(d.type === 'TRADE_ACC'){
+    const tIdx = game.trades.findIndex(x=>x.id===d.tid);
+    if(tIdx>-1){
+      const t = game.trades[tIdx];
+      const a = game.players[t.from], b = game.players[t.to];
+      const tax = game.policy==='FTA'?0 : (game.policy==='TARIFF'?150:50);
+      if(a && b && a.inv[t.give]>=t.giveQ && b.inv[t.want]>=t.wantQ && a.money>=tax && b.money>=tax){
+        a.inv[t.give]-=t.giveQ; b.inv[t.give]+=t.giveQ;
+        b.inv[t.want]-=t.wantQ; a.inv[t.want]+=t.wantQ;
+        a.money -= tax; b.money -= tax;
+        addLog(`🤝 ${a.nick}↔${b.nick} 무역 성사 (관세 ${tax}G)`);
+      }
+      game.trades.splice(tIdx,1);
+      broadcast();
+    }
+  }
+  if(d.type === 'TRADE_REJ'){
+    game.trades = game.trades.filter(x=>x.id!==d.tid);
+    broadcast();
+  }
+}
+
+function factoryTick(){
+  if(game.state !== 'PLAY') return;
+  let changed = false;
+  Object.values(game.players).forEach(p=>{
+    p.facts.forEach(item=>{ p.inv[item] = (p.inv[item]||0) + 1; changed = true; });
+  });
+  if(changed){ addLog('🏭 해외 현지 공장 부품 자동 생산 완료!'); broadcast(); }
+}
+
+function setGameState(s){ game.state = s; document.getElementById('hState').innerText = s==='PLAY'?'진행중':(s==='PAUSE'?'일시정지':'종료됨'); broadcast(); }
+function setPolicy(pol){ game.policy = pol; addLog(`📢 세계 경제 정책 변경: ${pol}`); broadcast(); }
+
+function renderHost(){
+  const list = Object.values(game.players).sort((a,b)=>calcScore(b)-calcScore(a));
+  document.getElementById('hCnt').innerText = list.length;
+  document.getElementById('hBoard').innerHTML = list.map((p,i)=>`<tr class="border-b"><td class="p-2 font-bold">${i+1}위</td><td class="p-2 font-bold">${p.nick}</td><td class="p-2">${p.country}</td><td class="p-2">${p.prod}개</td><td class="p-2">${p.facts.length}곳</td><td class="p-2">${p.money}G</td><td class="p-2 font-black text-indigo-700">${calcScore(p)}</td></tr>`).join('');
+  document.getElementById('hLogs').innerHTML = game.logs.map(l=>`<p>${l}</p>`).join('');
+}
+
+// --- 학생 ---
+function joinGame(){
+  roomCode = document.getElementById('inCode').value.trim().toUpperCase();
+  myNick = document.getElementById('inNick').value.trim();
+  if(!roomCode || !myNick) return alert('방 코드와 별명을 입력하세요!');
+  peer = new Peer();
+  peer.on('open', () => {
+    conn = peer.connect('WT6-' + roomCode);
+    conn.on('open', () => {
+      conn.send({ type:'JOIN', nick:myNick });
+      show('vPlay');
+    });
+    conn.on('data', d => { if(d.type==='SYNC'){ game = d.game; renderPlay(); } });
+    conn.on('error', () => { document.getElementById('err').innerText='방을 찾을 수 없습니다.'; document.getElementById('err').classList.remove('hidden'); });
+  });
+}
+
+function renderPlay(){
+  const p = game.players[myNick]; if(!p) return;
+  const polMap = { NORM:'⚖️ 기본 무역 (관세 50G)', FTA:'🤝 FTA 체결 (관세 0G)', TARIFF:'🚧 보호무역 장벽 (관세 150G)', BOOM:'📈 세계 호황 (생산보상 +50%)' };
+  document.getElementById('pPolTxt').innerText = polMap[game.policy];
+  document.getElementById('pStTxt').innerText = game.state==='PLAY'?'무역 진행중':(game.state==='PAUSE'?'일시정지':'수업 종료');
+  document.getElementById('pCountry').innerText = p.country;
+  document.getElementById('pNick').innerText = p.nick;
+  document.getElementById('pMoney').innerText = p.money;
+  document.getElementById('pProd').innerText = p.prod;
+  document.getElementById('pFact').innerText = p.facts.length;
+  document.getElementById('pScore').innerText = calcScore(p);
+
+  document.getElementById('pInv').innerHTML = Object.entries(ITEMS).map(([k,v])=>`<div class="bg-slate-50 border p-2 rounded-lg flex justify-between"><span>${v}</span><b class="text-indigo-700">${p.inv[k]||0}개</b></div>`).join('');
+  document.getElementById('pFactList').innerHTML = Object.entries(ITEMS).filter(([k])=>k!==p.main).map(([k,v])=>{
+    const built = p.facts.includes(k);
+    return `<button onclick="conn.send({type:'BUILD',nick:myNick,item:'${k}'})" ${built?'disabled':''} class="p-1.5 rounded border font-bold ${built?'bg-emerald-100 text-emerald-800':'bg-blue-50 hover:bg-blue-100 text-blue-800'}">${built?'✅ 가동중':'+ '+v}</button>`;
+  }).join('');
+
+  document.getElementById('pMissions').innerHTML = MISSIONS.map(m=>{
+    const ok = Object.entries(m.req).every(([k,v])=>p.inv[k]>=v);
+    const reqStr = Object.entries(m.req).map(([k,v])=>`${ITEMS[k]}${v}`).join(' + ');
+    return `<div class="border p-2.5 rounded-xl bg-slate-50 flex justify-between items-center">
+      <div><p class="font-black">${m.name} <span class="text-emerald-600">(+${m.reward}G)</span></p><p class="text-[11px] text-slate-500">${reqStr}</p></div>
+      <button onclick="conn.send({type:'CRAFT',nick:myNick,mid:'${m.id}'})" ${ok?'':'disabled'} class="px-3 py-1.5 rounded-lg font-black ${ok?'bg-emerald-600 text-white':'bg-slate-200 text-slate-400'}">생산</button>
+    </div>`;
+  }).join('');
+
+  const others = Object.values(game.players).filter(x=>x.nick!==myNick);
+  document.getElementById('tTarget').innerHTML = others.map(o=>`<option value="${o.nick}">${o.country} - ${o.nick}</option>`).join('');
+  const itemOpts = Object.entries(ITEMS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('');
+  if(!document.getElementById('tGive').innerHTML){ document.getElementById('tGive').innerHTML = itemOpts; document.getElementById('tWant').innerHTML = itemOpts; }
+
+  const myTrades = game.trades.filter(t=>t.to===myNick);
+  document.getElementById('pIncoming').innerHTML = myTrades.map(t=>`
+    <div class="bg-amber-100 border-2 border-amber-400 p-2.5 rounded-xl flex justify-between items-center text-xs">
+      <span>📨 <b>${t.from}</b>의 제안: [${ITEMS[t.give]} ${t.giveQ}개] 주고 ↔ [${ITEMS[t.want]} ${t.wantQ}개] 받기</span>
+      <div class="space-x-1"><button onclick="conn.send({type:'TRADE_ACC',nick:myNick,tid:${t.id}})" class="bg-emerald-600 text-white px-2.5 py-1 rounded font-bold">수락</button><button onclick="conn.send({type:'TRADE_REJ',nick:myNick,tid:${t.id}})" class="bg-rose-500 text-white px-2 py-1 rounded font-bold">거절</button></div>
+    </div>`).join('');
+
+  const board = Object.values(game.players).sort((a,b)=>calcScore(b)-calcScore(a));
+  document.getElementById('pBoard').innerHTML = board.map((x,i)=>`<div class="flex justify-between p-1 ${x.nick===myNick?'bg-indigo-50 font-bold rounded':''}"><span>${i+1}위 ${x.country} ${x.nick}</span><span>${calcScore(x)}점</span></div>`).join('');
+}
+
+function sendTrade(){
+  const to = document.getElementById('tTarget').value;
+  if(!to) return alert('무역할 친구가 아직 없습니다.');
+  conn.send({
+    type:'TRADE_REQ', nick:myNick, to,
+    give:document.getElementById('tGive').value, giveQ:Number(document.getElementById('tGiveQ').value),
+    want:document.getElementById('tWant').value, wantQ:Number(document.getElementById('tWantQ').value)
+  });
+  alert('무역 제안을 보냈습니다!');
+}
+</script>
+</body>
+</html>
